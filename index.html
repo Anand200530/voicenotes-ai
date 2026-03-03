@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VoiceNotes AI</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #fafafa; }
+    body { font-family: sans-serif; background: #fafafa; }
     .app { min-height: 100vh; display: flex; flex-direction: column; }
     .header { background: #fff; padding: 60px 20px 20px; border-bottom: 1px solid #eee; }
     .header h1 { font-size: 28px; font-weight: 700; }
@@ -18,7 +18,6 @@
     .folder.active { background: #1a1a1a; color: #fff; }
     .notes { flex: 1; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; align-content: start; }
     .note { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; }
-    .note:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
     .note-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
     .note-duration { font-size: 12px; color: #888; font-weight: 600; }
     .note-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
@@ -36,9 +35,7 @@
     .title-input { width: 100%; padding: 16px; background: #f5f5f5; border-radius: 12px; border: none; font-size: 16px; margin-bottom: 24px; }
     .record-area { text-align: center; padding: 20px; }
     .record-btn { width: 100px; height: 100px; border-radius: 50%; background: #f0f0f0; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-    .record-btn:active, .record-btn.active { background: #ff4444; }
     .record-btn-inner { width: 80px; height: 80px; border-radius: 50%; background: #1a1a1a; display: flex; align-items: center; justify-content: center; font-size: 32px; }
-    .record-btn:active .record-btn-inner, .record-btn.active .record-btn-inner { background: #fff; }
     .record-hint { color: #888; font-size: 14px; }
     .empty { grid-column: 1/-1; text-align: center; padding: 60px 20px; }
     .empty-text { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
@@ -52,125 +49,138 @@
       <p id="count">4 notes</p>
     </div>
     <div class="search">
-      <input type="text" id="search" placeholder="Search notes...">
+      <input type="text" id="search" placeholder="Search notes..." oninput="renderNotes()">
     </div>
     <div class="folders">
-      <button class="folder active" data-folder="All">All</button>
-      <button class="folder" data-folder="Work">Work</button>
-      <button class="folder" data-folder="Personal">Personal</button>
-      <button class="folder" data-folder="Ideas">Ideas</button>
+      <button class="folder active" onclick="changeFolder('All', this)">All</button>
+      <button class="folder" onclick="changeFolder('Work', this)">Work</button>
+      <button class="folder" onclick="changeFolder('Personal', this)">Personal</button>
+      <button class="folder" onclick="changeFolder('Ideas', this)">Ideas</button>
     </div>
     <div class="notes" id="notes"></div>
-    <button class="fab" onclick="openModal()">+</button>
+    <button class="fab" onclick="showModal()">+</button>
   </div>
   <div class="modal" id="modal">
     <div class="modal-content">
       <div class="modal-header">
         <span class="modal-title">NEW RECORDING</span>
-        <button class="modal-close" onclick="closeModal()">×</button>
+        <button class="modal-close" onclick="hideModal()">×</button>
       </div>
       <input type="text" class="title-input" id="noteTitle" placeholder="Note title (optional)">
       <div class="record-area">
-        <div class="record-btn" id="recordBtn" onmousedown="start()" onmouseup="stop()">
-          <div class="record-btn-inner" id="icon">🎤</div>
+        <div class="record-btn" onmousedown="startRec()" onmouseup="stopRec()">
+          <div class="record-btn-inner" id="micIcon">🎤</div>
         </div>
-        <p class="record-hint" id="hint">Hold to record</p>
+        <p class="record-hint" id="hintText">Hold to record</p>
       </div>
     </div>
   </div>
   <script>
-    var notes = [
-      {id:1, title:'Project Meeting', duration:'0:45', summary:'Key points: Q1 deadlines discussed. Action items assigned.', folder:'Work', date:'Today', pinned:true},
-      {id:2, title:'App Ideas', duration:'1:20', summary:'Brainstorming new features and user engagement strategies.', folder:'Ideas', date:'Yesterday', pinned:false},
-      {id:3, title:'Book Notes', duration:'2:15', summary:'Notes from Atomic Habits - habit formation insights.', folder:'Personal', date:'2 days ago', pinned:true},
-      {id:4, title:'Client Call', duration:'0:30', summary:'Project requirements discussed. Timeline agreed.', folder:'Work', date:'3 days ago', pinned:false},
+    var notesData = [
+      {id:1, title:'Project Meeting', duration:'0:45', summary:'Key points: Q1 deadlines discussed.', folder:'Work', date:'Today', pinned:true},
+      {id:2, title:'App Ideas', duration:'1:20', summary:'Brainstorming new features.', folder:'Ideas', date:'Yesterday', pinned:false},
+      {id:3, title:'Book Notes', duration:'2:15', summary:'Notes from Atomic Habits.', folder:'Personal', date:'2 days ago', pinned:true},
+      {id:4, title:'Client Call', duration:'0:30', summary:'Project requirements discussed.', folder:'Work', date:'3 days ago', pinned:false}
     ];
-    var folder = 'All';
+    var currentFolder = 'All';
     var recording = false;
-    var time = 0;
-    var timer = null;
+    var recSeconds = 0;
+    var recInterval = null;
 
-    function render() {
-      var q = document.getElementById('search').value.toLowerCase();
-      var n = notes.filter(function(x) {
-        return (folder === 'All' || x.folder === folder) && (x.title.toLowerCase().indexOf(q) > -1 || x.summary.toLowerCase().indexOf(q) > -1);
-      });
-      var p = n.filter(function(x) { return x.pinned; });
-      var r = n.filter(function(x) { return !x.pinned; });
-      document.getElementById('count').textContent = notes.length + ' notes';
+    function renderNotes() {
+      var query = document.getElementById('search').value.toLowerCase();
+      var filtered = [];
+      for (var i = 0; i < notesData.length; i++) {
+        var n = notesData[i];
+        var matchFolder = (currentFolder === 'All' || n.folder === currentFolder);
+        var matchQuery = (query === '' || n.title.toLowerCase().indexOf(query) > -1 || n.summary.toLowerCase().indexOf(query) > -1);
+        if (matchFolder && matchQuery) {
+          filtered.push(n);
+        }
+      }
       
-      if (n.length === 0) {
-        document.getElementById('notes').innerHTML = '<div class="empty"><div class="empty-text">No notes yet</div><div class="empty-sub">Tap + to record</div></div>';
+      var pinned = [];
+      var regular = [];
+      for (var i = 0; i < filtered.length; i++) {
+        if (filtered[i].pinned) pinned.push(filtered[i]);
+        else regular.push(filtered[i]);
+      }
+      
+      var display = pinned.concat(regular);
+      document.getElementById('count').textContent = notesData.length + ' notes';
+      
+      if (display.length === 0) {
+        document.getElementById('notes').innerHTML = '<div class="empty"><div class="empty-text">No notes</div><div class="empty-sub">Tap + to record</div></div>';
         return;
       }
       
       var html = '';
-      var all = p.concat(r);
-      for (var i = 0; i < all.length; i++) {
-        var x = all[i];
-        html += '<div class="note"><div class="note-header"><span class="note-duration">' + x.duration + '</span><span>' + (x.pinned ? '📌' : '') + '</span></div><div class="note-title">' + x.title + '</div><div class="note-summary">' + x.summary + '</div><div class="note-footer"><span class="note-date">' + x.date + '</span><span class="note-folder">' + x.folder + '</span></div></div>';
+      for (var i = 0; i < display.length; i++) {
+        var n = display[i];
+        html += '<div class="note"><div class="note-header"><span class="note-duration">' + n.duration + '</span><span>' + (n.pinned ? '📌' : '') + '</span></div><div class="note-title">' + n.title + '</div><div class="note-summary">' + n.summary + '</div><div class="note-footer"><span class="note-date">' + n.date + '</span><span class="note-folder">' + n.folder + '</span></div></div>';
       }
       document.getElementById('notes').innerHTML = html;
     }
 
-    var btns = document.querySelectorAll('.folder');
-    for (var i = 0; i < btns.length; i++) {
-      btns[i].onclick = function() {
-        for (var j = 0; j < btns.length; j++) { btns[j].classList.remove('active'); }
-        this.classList.add('active');
-        folder = this.getAttribute('data-folder');
-        render();
-      };
+    function changeFolder(folder, btn) {
+      currentFolder = folder;
+      var btns = document.querySelectorAll('.folder');
+      for (var i = 0; i < btns.length; i++) { btns[i].classList.remove('active'); }
+      btn.classList.add('active');
+      renderNotes();
     }
 
-    document.getElementById('search').oninput = render;
+    function showModal() { document.getElementById('modal').classList.add('active'); }
+    function hideModal() { 
+      document.getElementById('modal').classList.remove('active'); 
+      if (recording) stopRec(); 
+    }
 
-    function openModal() { document.getElementById('modal').classList.add('active'); }
-    function closeModal() { document.getElementById('modal').classList.remove('active'); if (recording) stop(); }
-
-    function start() { 
+    function startRec() { 
       if (recording) return; 
       recording = true; 
-      time = 0; 
-      document.getElementById('recordBtn').classList.add('active'); 
-      document.getElementById('icon').textContent = '⏹'; 
-      document.getElementById('hint').textContent = 'Recording...';
-      timer = setInterval(function() { 
-        time++; 
-        var m = Math.floor(time / 60);
-        var s = time % 60;
-        document.getElementById('hint').textContent = 'Recording ' + m + ':' + (s < 10 ? '0' : '') + s;
+      recSeconds = 0; 
+      document.getElementById('micIcon').textContent = '⏹'; 
+      document.getElementById('hintText').textContent = 'Recording...';
+      recInterval = setInterval(function() { 
+        recSeconds++; 
+        var m = Math.floor(recSeconds / 60);
+        var s = recSeconds % 60;
+        document.getElementById('hintText').textContent = 'Recording ' + m + ':' + (s < 10 ? '0' : '') + s;
       }, 1000);
     }
 
-    function stop() { 
+    function stopRec() { 
       if (!recording) return; 
       recording = false; 
-      clearInterval(timer); 
-      document.getElementById('recordBtn').classList.remove('active'); 
-      document.getElementById('icon').textContent = '🎤';
+      clearInterval(recInterval); 
+      document.getElementById('micIcon').textContent = '🎤';
       
-      if (time > 3) {
-        var t = document.getElementById('noteTitle').value || 'Voice Note ' + (notes.length + 1);
-        var s = ['Key points: Important discussion with action items identified.', 'Main topics: Planning and strategy discussed.', 'Summary: Productive session with next steps defined.', 'Notes: Valuable insights gathered.'];
-        var newNote = {
+      if (recSeconds > 3) {
+        var title = document.getElementById('noteTitle').value || 'Voice Note ' + (notesData.length + 1);
+        var summaries = ['Key points discussed.', 'Main topics covered.', 'Summary of session.'];
+        var summary = summaries[Math.floor(Math.random() * summaries.length)];
+        var dur = Math.floor(recSeconds / 60) + ':' + (recSeconds % 60 < 10 ? '0' : '') + (recSeconds % 60);
+        
+        notesData.unshift({
           id: Date.now(),
-          title: t,
-          summary: s[Math.floor(Math.random() * s.length)],
-          duration: Math.floor(time / 60) + ':' + (time % 60 < 10 ? '0' : '') + (time % 60),
-          folder: folder === 'All' ? 'Personal' : folder,
+          title: title,
+          summary: summary,
+          duration: dur,
+          folder: currentFolder === 'All' ? 'Personal' : currentFolder,
           date: 'Just now',
           pinned: false
-        };
-        notes.unshift(newNote);
+        });
+        
         document.getElementById('noteTitle').value = '';
-        closeModal();
-        render();
+        hideModal();
+        renderNotes();
       }
-      document.getElementById('hint').textContent = 'Hold to record';
+      recSeconds = 0;
+      document.getElementById('hintText').textContent = 'Hold to record';
     }
 
-    render();
+    renderNotes();
   </script>
 </body>
 </html>
