@@ -40,7 +40,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const recordingAnim = useRef(new Animated.Value(1)).current
-  const recordingTimer = useRef(null)
+  
 
   useEffect(() => { loadData() }, [])
 
