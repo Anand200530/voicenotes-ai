@@ -70,20 +70,6 @@ const generateAISummary = async (transcript) => {
 - **OpenAI GPT**: Summarization
 - **AssemblyAI**: Transcription + Summarization
 
-## Monetization Potential
-
-This app is ready for premium features:
-
-### Free Version
-- Basic voice recording
-- Manual note organization
-
-### Premium ($4.99-9.99)
-- AI summaries
-- Action item extraction
-- Unlimited recordings
-- Cloud sync
-- Export features
 
 ## License
 
