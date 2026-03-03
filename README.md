@@ -1,50 +1,94 @@
-# Welcome to your Expo app 👋
+# VoiceNotes AI - AI-Powered Voice Notes App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Turn your voice notes into actionable insights with AI-powered transcription, summarization, and action item extraction.
 
-## Get started
+## Features
 
-1. Install dependencies
+### 🎤 Voice Recording
+- Simple one-tap voice recording
+- Visual feedback with animated recording indicator
+- Duration tracking
 
-   ```bash
-   npm install
-   ```
+### 🤖 AI-Powered Insights
+- **AI Summary**: Automatically generates concise summaries of your voice notes
+- **Action Items**: Extracts actionable tasks from your recordings
+- **Transcription**: Voice-to-text conversion (ready for AI API integration)
 
-2. Start the app
+### 📝 Note Management
+- Create, edit, and delete voice notes
+- Pin important notes
+- Search through your notes
+- Clean, intuitive interface
 
-   ```bash
-   npx expo start
-   ```
+### 📱 Modern Design
+- Beautiful, minimalist UI
+- Dark mode support ready
+- Smooth animations
+- Responsive layout
 
-In the output, you'll find options to open the app in a
+## Tech Stack
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **Framework**: React Native with Expo
+- **Storage**: AsyncStorage for local data persistence
+- **Architecture**: Clean, component-based architecture
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Installation
 
-## Get a fresh project
-
-When you're ready, run:
-
+1. Install dependencies:
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Start the development server:
+```bash
+npx expo start
+```
 
-## Learn more
+3. Run on your preferred platform:
+- **Web**: `npx expo start --web`
+- **Android**: `npx expo start --android`
+- **iOS**: `npx expo start --ios`
 
-To learn more about developing your project with Expo, look at the following resources:
+## Customization
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Adding Real AI
+Replace the simulated AI functions in App.js with real AI API calls:
 
-## Join the community
+```javascript
+// Replace generateAISummary() with actual API call
+const generateAISummary = async (transcript) => {
+  const response = await fetch('YOUR_AI_API', {
+    method: 'POST',
+    body: JSON.stringify({ text: transcript })
+  })
+  return response.json()
+}
+```
 
-Join our community of developers creating universal apps.
+### Recommended AI APIs
+- **OpenAI Whisper**: Transcription
+- **OpenAI GPT**: Summarization
+- **AssemblyAI**: Transcription + Summarization
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Monetization Potential
+
+This app is ready for premium features:
+
+### Free Version
+- Basic voice recording
+- Manual note organization
+
+### Premium ($4.99-9.99)
+- AI summaries
+- Action item extraction
+- Unlimited recordings
+- Cloud sync
+- Export features
+
+## License
+
+Sell on Gumroad, CodeCanyon, or your own platform.
+
+---
+
+Build date: 2026
